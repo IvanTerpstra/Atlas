@@ -2,6 +2,7 @@ package com.example.atlas.ui.skillz
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -185,8 +186,8 @@ fun AddSkillDialog(onDismiss: () -> Unit, onConfirm: (String, String, Int) -> Un
                 )
                 Text("Category", style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    categories.forEach { cat ->
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    items(categories) { cat ->
                         FilterChip(
                             selected = category == cat,
                             onClick = { category = cat },
