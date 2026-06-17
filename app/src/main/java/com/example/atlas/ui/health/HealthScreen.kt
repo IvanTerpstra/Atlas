@@ -202,10 +202,10 @@ fun SleepCard(log: SleepLog, viewModel: HealthViewModel) {
         )
     }
 
+
     val hours = log.hoursSlept.toInt()
     val minutes = ((log.hoursSlept - hours) * 60).toInt()
     val displayTime = "${hours}h ${minutes}m"
-
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),

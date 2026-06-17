@@ -14,6 +14,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
+
 @Composable
 fun DashboardScreen(viewModel: DashboardViewModel = viewModel()) {
     val tasks by viewModel.tasks.collectAsState()
@@ -72,12 +73,17 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel()) {
         }
 
         item {
+            val displayTime = latestSleep?.let {
+                val hours = it.hoursSlept.toInt()
+                val minutes = ((it.hoursSlept - hours) * 60).toInt()
+                "${hours}h ${minutes}m"
+            } ?: "—"
             SectionTitle("Today at a glance")
             Spacer(modifier = Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 GlanceCard("Tasks", "${completedTasks.size}/${todayTasks.size} done",
                     Color(0xFF818CF8), Modifier.weight(1f))
-                GlanceCard("Sleep", if (latestSleep != null) "${latestSleep.hoursSlept}h" else "—",
+                GlanceCard("Sleep", displayTime,
                     Color(0xFF818CF8), Modifier.weight(1f))
             }
             Spacer(modifier = Modifier.height(10.dp))
