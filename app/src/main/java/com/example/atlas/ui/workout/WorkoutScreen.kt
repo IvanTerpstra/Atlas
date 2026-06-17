@@ -14,7 +14,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.atlas.data.models.Exercise
 import com.example.atlas.data.models.WorkoutPlan
+import com.example.atlas.ui.ConfirmDeleteDialog
 
 val daysOfWeek = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 
@@ -104,6 +106,18 @@ fun DaySection(day: String, plans: List<WorkoutPlan>, viewModel: WorkoutViewMode
 
 @Composable
 fun WorkoutPlanCard(plan: WorkoutPlan, viewModel: WorkoutViewModel) {
+    var showConfirmDeletePlan by remember { mutableStateOf(false) }
+    if (showConfirmDeletePlan) {
+        ConfirmDeleteDialog(
+            title = "Delete Workout plan",
+            message = "Delete \"${plan.name}\"?",
+            onConfirm = {
+                viewModel.deletePlan(plan)
+                showConfirmDeletePlan = false
+            },
+            onDismiss = { showConfirmDeletePlan = false }
+        )
+    }
     var expanded by remember { mutableStateOf(false) }
     var showAddExercise by remember { mutableStateOf(false) }
     val exercises by viewModel.getExercises(plan.id).collectAsState()
@@ -142,7 +156,7 @@ fun WorkoutPlanCard(plan: WorkoutPlan, viewModel: WorkoutViewModel) {
                     modifier = Modifier.size(18.dp)
                 )
             }
-            IconButton(onClick = { viewModel.deletePlan(plan) }) {
+            IconButton(onClick = { showConfirmDeletePlan = true }) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete plan",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp))

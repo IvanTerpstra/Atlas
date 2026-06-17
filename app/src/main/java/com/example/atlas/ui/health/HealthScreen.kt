@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.atlas.data.models.HealthLog
 import com.example.atlas.data.models.SleepLog
+import com.example.atlas.ui.ConfirmDeleteDialog
 
 @Composable
 fun HealthScreen(viewModel: HealthViewModel = viewModel()) {
@@ -122,6 +123,19 @@ fun StatCard(label: String, value: String, color: Color, modifier: Modifier = Mo
 
 @Composable
 fun SleepCard(log: SleepLog, viewModel: HealthViewModel) {
+    var showConfirmDelete by remember { mutableStateOf(false) }
+
+    if (showConfirmDelete) {
+        ConfirmDeleteDialog(
+            title = "Delete task",
+            message = "Delete \"${log.date}\"?",
+            onConfirm = {
+                viewModel.deleteSleep(log)
+                showConfirmDelete = false
+            },
+            onDismiss = { showConfirmDelete = false }
+        )
+    }
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
@@ -137,7 +151,7 @@ fun SleepCard(log: SleepLog, viewModel: HealthViewModel) {
                 Text("${log.hoursSlept}h sleep",
                     style = MaterialTheme.typography.bodyMedium, color = Color(0xFF818CF8))
             }
-            IconButton(onClick = { viewModel.deleteSleep(log) }) {
+            IconButton(onClick = { showConfirmDelete = true }) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -147,6 +161,19 @@ fun SleepCard(log: SleepLog, viewModel: HealthViewModel) {
 
 @Composable
 fun HealthLogCard(log: HealthLog, viewModel: HealthViewModel) {
+    var showConfirmDelete by remember { mutableStateOf(false) }
+
+    if (showConfirmDelete) {
+        ConfirmDeleteDialog(
+            title = "Delete task",
+            message = "Delete \"${log.date}\"?",
+            onConfirm = {
+                viewModel.deleteHealth(log)
+                showConfirmDelete = false
+            },
+            onDismiss = { showConfirmDelete = false }
+        )
+    }
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),

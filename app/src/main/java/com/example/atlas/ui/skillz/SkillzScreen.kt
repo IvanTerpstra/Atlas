@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.atlas.data.models.Skill
+import com.example.atlas.ui.ConfirmDeleteDialog
 
 @Composable
 fun SkillzScreen(viewModel: SkillViewModel = viewModel()) {
@@ -67,6 +68,20 @@ fun SkillzScreen(viewModel: SkillViewModel = viewModel()) {
 
 @Composable
 fun SkillCard(skill: Skill, categoryColors: Map<String, Color>, viewModel: SkillViewModel) {
+    var showConfirmDelete by remember { mutableStateOf(false) }
+
+    if (showConfirmDelete) {
+        ConfirmDeleteDialog(
+            title = "Delete skill",
+            message = "Delete \"${skill.title}\"?",
+            onConfirm = {
+                viewModel.deleteSkill(skill)
+                showConfirmDelete = false
+            },
+            onDismiss = { showConfirmDelete = false }
+        )
+    }
+
     var showSlider by remember { mutableStateOf(false) }
     val progress = if (skill.targetLevel > 0)
         (skill.currentLevel.toFloat() / skill.targetLevel.toFloat()).coerceIn(0f, 1f) else 0f
@@ -96,7 +111,7 @@ fun SkillCard(skill: Skill, categoryColors: Map<String, Color>, viewModel: Skill
                 }
                 Text("${skill.currentLevel}/${skill.targetLevel}",
                     style = MaterialTheme.typography.labelMedium, color = progressColor)
-                IconButton(onClick = { viewModel.deleteSkill(skill) }) {
+                IconButton(onClick = { showConfirmDelete = true }) {
                     Icon(Icons.Default.Delete, contentDescription = "Delete",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }

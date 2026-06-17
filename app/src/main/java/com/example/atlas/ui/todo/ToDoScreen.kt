@@ -16,6 +16,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.atlas.data.models.Task
+import com.example.atlas.ui.ConfirmDeleteDialog
 
 @Composable
 fun TodoScreen(viewModel: TaskViewModel = viewModel()) {
@@ -83,6 +84,20 @@ fun TodoScreen(viewModel: TaskViewModel = viewModel()) {
 
 @Composable
 fun TaskCard(task: Task, categoryColors: Map<String, Color>, viewModel: TaskViewModel) {
+    var showConfirmDelete by remember { mutableStateOf(false) }
+
+    if (showConfirmDelete) {
+        ConfirmDeleteDialog(
+            title = "Delete task",
+            message = "Delete \"${task.title}\"?",
+            onConfirm = {
+                viewModel.deleteTask(task)
+                showConfirmDelete = false
+            },
+            onDismiss = { showConfirmDelete = false }
+        )
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
@@ -118,7 +133,7 @@ fun TaskCard(task: Task, categoryColors: Map<String, Color>, viewModel: TaskView
                     color = color
                 )
             }
-            IconButton(onClick = { viewModel.deleteTask(task) }) {
+            IconButton(onClick = { showConfirmDelete = true }) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }

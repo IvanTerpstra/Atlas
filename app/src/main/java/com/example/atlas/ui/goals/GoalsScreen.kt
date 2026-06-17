@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.atlas.data.models.Goal
+import com.example.atlas.ui.ConfirmDeleteDialog
 
 @Composable
 fun GoalsScreen(viewModel: GoalViewModel = viewModel()) {
@@ -83,6 +84,20 @@ fun SectionHeader(label: String, color: Color, count: Int) {
 
 @Composable
 fun GoalCard(goal: Goal, viewModel: GoalViewModel) {
+    var showConfirmDelete by remember { mutableStateOf(false) }
+
+    if (showConfirmDelete) {
+        ConfirmDeleteDialog(
+            title = "Delete goal",
+            message = "Delete \"${goal.title}\"?",
+            onConfirm = {
+                viewModel.deleteGoal(goal)
+                showConfirmDelete = false
+            },
+            onDismiss = { showConfirmDelete = false }
+        )
+    }
+
     var showSlider by remember { mutableStateOf(false) }
     val progress = if (goal.target > 0) (goal.current / goal.target).coerceIn(0f, 1f) else 0f
     val pct = (progress * 100).toInt()
@@ -102,7 +117,7 @@ fun GoalCard(goal: Goal, viewModel: GoalViewModel) {
                 Text(goal.title, style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.weight(1f))
                 Text("$pct%", style = MaterialTheme.typography.labelMedium, color = progressColor)
-                IconButton(onClick = { viewModel.deleteGoal(goal) }) {
+                IconButton(onClick = { showConfirmDelete = true }) {
                     Icon(Icons.Default.Delete, contentDescription = "Delete",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
