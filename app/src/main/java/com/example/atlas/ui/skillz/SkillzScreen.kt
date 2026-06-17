@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.atlas.data.models.Skill
 import com.example.atlas.ui.ConfirmDeleteDialog
+import com.example.atlas.ui.HapticSlider
 
 @Composable
 fun SkillzScreen(viewModel: SkillViewModel = viewModel()) {
@@ -153,16 +154,13 @@ fun SkillCard(skill: Skill, categoryColors: Map<String, Color>, viewModel: Skill
             }
             if (showSlider) {
                 var sliderValue by remember { mutableIntStateOf(skill.currentLevel) }
-                Slider(
+                HapticSlider(
                     value = sliderValue.toFloat(),
                     onValueChange = { sliderValue = it.toInt() },
                     valueRange = 0f..skill.targetLevel.toFloat(),
                     steps = skill.targetLevel - 1,
-                    colors = SliderDefaults.colors(
-                        thumbColor = Color(0xFFA78BFA),
-                        activeTrackColor = Color(0xFFA78BFA)
-                    ),
-                    modifier = Modifier.fillMaxWidth()
+                    color = Color(0xFFA78BFA),
+                    labelText = { "Level ${it.toInt()}" }
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),

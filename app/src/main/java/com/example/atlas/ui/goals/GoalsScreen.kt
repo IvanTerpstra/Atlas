@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.atlas.data.models.Goal
 import com.example.atlas.ui.ConfirmDeleteDialog
+import com.example.atlas.ui.HapticSlider
 
 @Composable
 fun GoalsScreen(viewModel: GoalViewModel = viewModel()) {
@@ -154,13 +155,12 @@ fun GoalCard(goal: Goal, viewModel: GoalViewModel) {
             }
             if (showSlider) {
                 var sliderValue by remember { mutableFloatStateOf(goal.current) }
-                Slider(
+                HapticSlider(
                     value = sliderValue,
                     onValueChange = { sliderValue = it },
                     valueRange = 0f..goal.target,
-                    colors = SliderDefaults.colors(thumbColor = Color(0xFFA78BFA),
-                        activeTrackColor = Color(0xFFA78BFA)),
-                    modifier = Modifier.fillMaxWidth()
+                    color = Color(0xFFA78BFA),
+                    labelText = { it.toInt().toString() }
                 )
                 Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
                     TextButton(onClick = {
