@@ -35,4 +35,10 @@ class GoalViewModel(app: Application) : AndroidViewModel(app) {
             dao.delete(goal)
         }
     }
+
+    fun updateGoal(goal: Goal, newTitle: String, newTarget: Float, newIsLongTerm: Boolean, newNote: String) {
+        viewModelScope.launch {
+            dao.update(goal.copy(title = newTitle, target = newTarget, isLongTerm = newIsLongTerm, note = newNote))
+        }
+    }
 }

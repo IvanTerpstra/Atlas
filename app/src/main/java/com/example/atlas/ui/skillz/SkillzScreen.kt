@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -69,7 +70,18 @@ fun SkillzScreen(viewModel: SkillViewModel = viewModel()) {
 
 @Composable
 fun SkillCard(skill: Skill, categoryColors: Map<String, Color>, viewModel: SkillViewModel) {
+    var showSlider by remember { mutableStateOf(false) }
     var showConfirmDelete by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
+    val progress = if (skill.targetLevel > 0)
+        (skill.currentLevel.toFloat() / skill.targetLevel.toFloat()).coerceIn(0f, 1f) else 0f
+    val pct = (progress * 100).toInt()
+    val progressColor = when {
+        pct >= 75 -> Color(0xFF4ADE80)
+        pct >= 40 -> Color(0xFFA78BFA)
+        else -> Color(0xFFF97316)
+    }
+    val categoryColor = categoryColors[skill.category] ?: Color(0xFF888780)
 
     if (showConfirmDelete) {
         ConfirmDeleteDialog(
@@ -83,16 +95,16 @@ fun SkillCard(skill: Skill, categoryColors: Map<String, Color>, viewModel: Skill
         )
     }
 
-    var showSlider by remember { mutableStateOf(false) }
-    val progress = if (skill.targetLevel > 0)
-        (skill.currentLevel.toFloat() / skill.targetLevel.toFloat()).coerceIn(0f, 1f) else 0f
-    val pct = (progress * 100).toInt()
-    val progressColor = when {
-        pct >= 75 -> Color(0xFF4ADE80)
-        pct >= 40 -> Color(0xFFA78BFA)
-        else -> Color(0xFFF97316)
+    if (showEditDialog) {
+        EditSkillDialog(
+            skill = skill,
+            onDismiss = { showEditDialog = false },
+            onConfirm = { newTitle, newCategory, newTargetLevel ->
+                viewModel.updateSkill(skill, newTitle, newCategory, newTargetLevel)
+                showEditDialog = false
+            }
+        )
     }
-    val categoryColor = categoryColors[skill.category] ?: Color(0xFF888780)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -112,6 +124,10 @@ fun SkillCard(skill: Skill, categoryColors: Map<String, Color>, viewModel: Skill
                 }
                 Text("${skill.currentLevel}/${skill.targetLevel}",
                     style = MaterialTheme.typography.labelMedium, color = progressColor)
+                IconButton(onClick = { showEditDialog = true }) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 IconButton(onClick = { showConfirmDelete = true }) {
                     Icon(Icons.Default.Delete, contentDescription = "Delete",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -213,6 +229,59 @@ fun AddSkillDialog(onDismiss: () -> Unit, onConfirm: (String, String, Int) -> Un
             TextButton(onClick = {
                 if (title.isNotBlank()) onConfirm(title, category, targetLevel)
             }) { Text("Add", color = Color(0xFFA78BFA)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
+
+@Composable
+fun EditSkillDialog(skill: Skill, onDismiss: () -> Unit, onConfirm: (String, String, Int) -> Unit) {
+    var title by remember { mutableStateOf(skill.title) }
+    var category by remember { mutableStateOf(skill.category) }
+    var targetLevel by remember { mutableIntStateOf(skill.targetLevel) }
+    val categories = listOf("Tech", "Fitness", "Creative", "Academic", "Other")
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit skill") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = title, onValueChange = { title = it },
+                    label = { Text("Skill name") }, singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text("Category", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    items(categories) { cat ->
+                        FilterChip(
+                            selected = category == cat,
+                            onClick = { category = cat },
+                            label = { Text(cat, style = MaterialTheme.typography.labelSmall) }
+                        )
+                    }
+                }
+                Text("Target level: $targetLevel", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Slider(
+                    value = targetLevel.toFloat(),
+                    onValueChange = { targetLevel = it.toInt() },
+                    valueRange = 1f..10f,
+                    steps = 8,
+                    colors = SliderDefaults.colors(
+                        thumbColor = Color(0xFFA78BFA),
+                        activeTrackColor = Color(0xFFA78BFA)
+                    )
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                if (title.isNotBlank()) onConfirm(title, category, targetLevel)
+            }) { Text("Save", color = Color(0xFFA78BFA)) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }

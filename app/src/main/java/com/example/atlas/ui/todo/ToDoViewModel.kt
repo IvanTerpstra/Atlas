@@ -35,4 +35,10 @@ class TaskViewModel(app: Application) : AndroidViewModel(app) {
             dao.delete(task)
         }
     }
+
+    fun updateTask(task: Task, newTitle: String, newCategory: String, newIsUpcoming: Boolean) {
+        viewModelScope.launch {
+            dao.update(task.copy(title = newTitle, category = newCategory, isUpcoming = newIsUpcoming))
+        }
+    }
 }

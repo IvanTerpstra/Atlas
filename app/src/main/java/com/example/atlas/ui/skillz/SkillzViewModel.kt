@@ -35,4 +35,10 @@ class SkillViewModel(app: Application) : AndroidViewModel(app) {
             dao.delete(skill)
         }
     }
+
+    fun updateSkill(skill: Skill, newTitle: String, newCategory: String, newTargetLevel: Int) {
+        viewModelScope.launch {
+            dao.update(skill.copy(title = newTitle, category = newCategory, targetLevel = newTargetLevel))
+        }
+    }
 }

@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -84,7 +85,16 @@ fun SectionHeader(label: String, color: Color, count: Int) {
 
 @Composable
 fun GoalCard(goal: Goal, viewModel: GoalViewModel) {
+    var showSlider by remember { mutableStateOf(false) }
     var showConfirmDelete by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
+    val progress = if (goal.target > 0) (goal.current / goal.target).coerceIn(0f, 1f) else 0f
+    val pct = (progress * 100).toInt()
+    val progressColor = when {
+        pct >= 75 -> Color(0xFF4ADE80)
+        pct >= 40 -> Color(0xFFA78BFA)
+        else -> Color(0xFFF97316)
+    }
 
     if (showConfirmDelete) {
         ConfirmDeleteDialog(
@@ -98,13 +108,15 @@ fun GoalCard(goal: Goal, viewModel: GoalViewModel) {
         )
     }
 
-    var showSlider by remember { mutableStateOf(false) }
-    val progress = if (goal.target > 0) (goal.current / goal.target).coerceIn(0f, 1f) else 0f
-    val pct = (progress * 100).toInt()
-    val progressColor = when {
-        pct >= 75 -> Color(0xFF4ADE80)
-        pct >= 40 -> Color(0xFFA78BFA)
-        else -> Color(0xFFF97316)
+    if (showEditDialog) {
+        EditGoalDialog(
+            goal = goal,
+            onDismiss = { showEditDialog = false },
+            onConfirm = { newTitle, newTarget, newIsLongTerm, newNote ->
+                viewModel.updateGoal(goal, newTitle, newTarget, newIsLongTerm, newNote)
+                showEditDialog = false
+            }
+        )
     }
 
     Card(
@@ -117,6 +129,10 @@ fun GoalCard(goal: Goal, viewModel: GoalViewModel) {
                 Text(goal.title, style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.weight(1f))
                 Text("$pct%", style = MaterialTheme.typography.labelMedium, color = progressColor)
+                IconButton(onClick = { showEditDialog = true }) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 IconButton(onClick = { showConfirmDelete = true }) {
                     Icon(Icons.Default.Delete, contentDescription = "Delete",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -191,6 +207,45 @@ fun AddGoalDialog(onDismiss: () -> Unit, onConfirm: (String, Float, Boolean, Str
                 val t = target.toFloatOrNull() ?: 100f
                 if (title.isNotBlank()) onConfirm(title, t, isLongTerm, note)
             }) { Text("Add", color = Color(0xFFA78BFA)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
+
+@Composable
+fun EditGoalDialog(goal: Goal, onDismiss: () -> Unit, onConfirm: (String, Float, Boolean, String) -> Unit) {
+    var title by remember { mutableStateOf(goal.title) }
+    var target by remember { mutableStateOf(goal.target.toInt().toString()) }
+    var isLongTerm by remember { mutableStateOf(goal.isLongTerm) }
+    var note by remember { mutableStateOf(goal.note) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit goal") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(value = title, onValueChange = { title = it },
+                    label = { Text("Goal name") }, singleLine = true,
+                    modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = target, onValueChange = { target = it },
+                    label = { Text("Target") }, singleLine = true,
+                    modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = note, onValueChange = { note = it },
+                    label = { Text("Note (optional)") }, singleLine = true,
+                    modifier = Modifier.fillMaxWidth())
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = isLongTerm, onCheckedChange = { isLongTerm = it })
+                    Text("Long term goal", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val t = target.toFloatOrNull() ?: goal.target
+                if (title.isNotBlank()) onConfirm(title, t, isLongTerm, note)
+            }) { Text("Save", color = Color(0xFFA78BFA)) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }

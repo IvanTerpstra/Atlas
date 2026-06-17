@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.atlas.data.models.Task
 import com.example.atlas.ui.ConfirmDeleteDialog
+
 
 @Composable
 fun TodoScreen(viewModel: TaskViewModel = viewModel()) {
@@ -86,6 +88,7 @@ fun TodoScreen(viewModel: TaskViewModel = viewModel()) {
 @Composable
 fun TaskCard(task: Task, categoryColors: Map<String, Color>, viewModel: TaskViewModel) {
     var showConfirmDelete by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
 
     if (showConfirmDelete) {
         ConfirmDeleteDialog(
@@ -96,6 +99,17 @@ fun TaskCard(task: Task, categoryColors: Map<String, Color>, viewModel: TaskView
                 showConfirmDelete = false
             },
             onDismiss = { showConfirmDelete = false }
+        )
+    }
+
+    if (showEditDialog) {
+        EditTaskDialog(
+            task = task,
+            onDismiss = { showEditDialog = false },
+            onConfirm = { newTitle, newCategory, newIsUpcoming ->
+                viewModel.updateTask(task, newTitle, newCategory, newIsUpcoming)
+                showEditDialog = false
+            }
         )
     }
 
@@ -133,6 +147,10 @@ fun TaskCard(task: Task, categoryColors: Map<String, Color>, viewModel: TaskView
                     style = MaterialTheme.typography.labelSmall,
                     color = color
                 )
+            }
+            IconButton(onClick = { showEditDialog = true }) {
+                Icon(Icons.Default.Edit, contentDescription = "Edit",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             IconButton(onClick = { showConfirmDelete = true }) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete",
@@ -181,6 +199,53 @@ fun AddTaskDialog(onDismiss: () -> Unit, onConfirm: (String, String, Boolean) ->
         confirmButton = {
             TextButton(onClick = { if (title.isNotBlank()) onConfirm(title, category, isUpcoming) }) {
                 Text("Add", color = Color(0xFFA78BFA))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
+
+@Composable
+fun EditTaskDialog(task: Task, onDismiss: () -> Unit, onConfirm: (String, String, Boolean) -> Unit) {
+    var title by remember { mutableStateOf(task.title) }
+    var category by remember { mutableStateOf(task.category) }
+    var isUpcoming by remember { mutableStateOf(task.isUpcoming) }
+    val categories = listOf("Fitness", "School", "Health", "Personal", "Career")
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit task") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Task name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text("Category", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    items(categories) { cat ->
+                        FilterChip(
+                            selected = category == cat,
+                            onClick = { category = cat },
+                            label = { Text(cat, style = MaterialTheme.typography.labelSmall) }
+                        )
+                    }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = isUpcoming, onCheckedChange = { isUpcoming = it })
+                    Text("Upcoming task", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { if (title.isNotBlank()) onConfirm(title, category, isUpcoming) }) {
+                Text("Save", color = Color(0xFFA78BFA))
             }
         },
         dismissButton = {
