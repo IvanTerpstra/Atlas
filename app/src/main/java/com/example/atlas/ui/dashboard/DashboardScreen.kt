@@ -84,7 +84,7 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel()) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 GlanceCard("Calories", if (latestHealth != null) "${latestHealth.calories} kcal" else "—",
                     Color(0xFFF97316), Modifier.weight(1f))
-                GlanceCard("Water", if (latestHealth != null) "${latestHealth.waterLiters}L" else "—",
+                GlanceCard("Water", if (latestHealth != null) "${latestHealth.waterMl}Ml" else "—",
                     Color(0xFF22D3EE), Modifier.weight(1f))
             }
             Spacer(modifier = Modifier.height(10.dp))

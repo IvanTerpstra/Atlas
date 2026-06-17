@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,6 +18,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.atlas.data.models.HealthLog
 import com.example.atlas.data.models.SleepLog
 import com.example.atlas.ui.ConfirmDeleteDialog
+import java.text.SimpleDateFormat
+import java.util.*
 
 @Composable
 fun HealthScreen(viewModel: HealthViewModel = viewModel()) {
@@ -25,9 +28,16 @@ fun HealthScreen(viewModel: HealthViewModel = viewModel()) {
     var showHealthDialog by remember { mutableStateOf(false) }
     var showSleepDialog by remember { mutableStateOf(false) }
 
-    val todayHealth = healthLogs.lastOrNull()
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    val today = dateFormat.format(Date())
+
+    val todayHealth = healthLogs.find { it.date == today }
     val avgSleep = if (sleepLogs.isNotEmpty())
         sleepLogs.takeLast(7).map { it.hoursSlept }.average().toFloat() else 0f
+
+    val waterDisplay = if ((todayHealth?.waterMl ?: 0) >= 1000)
+        "${"%.1f".format((todayHealth?.waterMl ?: 0) / 1000f)}L"
+    else "${todayHealth?.waterMl ?: 0}ml"
 
     Scaffold(
         floatingActionButton = {
@@ -59,9 +69,12 @@ fun HealthScreen(viewModel: HealthViewModel = viewModel()) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     StatCard("Protein", "${todayHealth?.protein ?: 0}g",
                         Color(0xFF4ADE80), Modifier.weight(1f))
-                    StatCard("Water", "${todayHealth?.waterLiters ?: 0f}L",
+                    StatCard("Water", waterDisplay,
                         Color(0xFF22D3EE), Modifier.weight(1f))
                 }
+            }
+            item {
+                WaterQuickAdd(viewModel)
             }
             if (sleepLogs.isNotEmpty()) {
                 item {
@@ -88,8 +101,8 @@ fun HealthScreen(viewModel: HealthViewModel = viewModel()) {
     if (showHealthDialog) {
         LogHealthDialog(
             onDismiss = { showHealthDialog = false },
-            onConfirm = { calories, protein, carbs, fat, water ->
-                viewModel.logHealth(calories, protein, carbs, fat, water)
+            onConfirm = { foodName, calories, protein, carbs, fat, waterMl ->
+                viewModel.logHealth(foodName, calories, protein, carbs, fat, waterMl)
                 showHealthDialog = false
             }
         )
@@ -103,6 +116,58 @@ fun HealthScreen(viewModel: HealthViewModel = viewModel()) {
                 showSleepDialog = false
             }
         )
+    }
+}
+
+@Composable
+fun WaterQuickAdd(viewModel: HealthViewModel) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Quick add water", style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = { viewModel.addWater(250) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("☕", style = MaterialTheme.typography.bodySmall)
+                        Text("Cup", style = MaterialTheme.typography.labelSmall)
+                        Text("250ml", style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFF22D3EE))
+                    }
+                }
+                OutlinedButton(
+                    onClick = { viewModel.addWater(650) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("🥤", style = MaterialTheme.typography.bodySmall)
+                        Text("Glass", style = MaterialTheme.typography.labelSmall)
+                        Text("650ml", style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFF22D3EE))
+                    }
+                }
+                OutlinedButton(
+                    onClick = { viewModel.addWater(1000) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("🍶", style = MaterialTheme.typography.bodySmall)
+                        Text("Bottle", style = MaterialTheme.typography.labelSmall)
+                        Text("1000ml", style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFF22D3EE))
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -127,8 +192,8 @@ fun SleepCard(log: SleepLog, viewModel: HealthViewModel) {
 
     if (showConfirmDelete) {
         ConfirmDeleteDialog(
-            title = "Delete task",
-            message = "Delete \"${log.date}\"?",
+            title = "Delete sleep log",
+            message = "Delete sleep log for ${log.date}?",
             onConfirm = {
                 viewModel.deleteSleep(log)
                 showConfirmDelete = false
@@ -136,19 +201,21 @@ fun SleepCard(log: SleepLog, viewModel: HealthViewModel) {
             onDismiss = { showConfirmDelete = false }
         )
     }
+
+    val hours = log.hoursSlept.toInt()
+    val minutes = ((log.hoursSlept - hours) * 60).toInt()
+    val displayTime = "${hours}h ${minutes}m"
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Row(
-            modifier = Modifier.padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(log.date, style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("${log.hoursSlept}h sleep",
+                Text("$displayTime sleep",
                     style = MaterialTheme.typography.bodyMedium, color = Color(0xFF818CF8))
             }
             IconButton(onClick = { showConfirmDelete = true }) {
@@ -162,11 +229,12 @@ fun SleepCard(log: SleepLog, viewModel: HealthViewModel) {
 @Composable
 fun HealthLogCard(log: HealthLog, viewModel: HealthViewModel) {
     var showConfirmDelete by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
 
     if (showConfirmDelete) {
         ConfirmDeleteDialog(
-            title = "Delete task",
-            message = "Delete \"${log.date}\"?",
+            title = "Delete nutrition log",
+            message = "Delete log for ${log.date}?",
             onConfirm = {
                 viewModel.deleteHealth(log)
                 showConfirmDelete = false
@@ -174,28 +242,49 @@ fun HealthLogCard(log: HealthLog, viewModel: HealthViewModel) {
             onDismiss = { showConfirmDelete = false }
         )
     }
+
+    if (showEditDialog) {
+        EditHealthDialog(
+            log = log,
+            onDismiss = { showEditDialog = false },
+            onConfirm = { foodName, calories, protein, carbs, fat, waterMl ->
+                viewModel.updateHealth(log, foodName, calories, protein, carbs, fat, waterMl)
+                showEditDialog = false
+            }
+        )
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Row(
-            modifier = Modifier.padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(log.date, style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    MacroText("P", "${log.protein}g", Color(0xFF4ADE80))
-                    MacroText("C", "${log.carbs}g", Color(0xFFF97316))
-                    MacroText("F", "${log.fat}g", Color(0xFFFACC15))
-                    MacroText("kcal", "${log.calories}", Color(0xFFA78BFA))
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(log.date, style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (log.foodName.isNotBlank()) {
+                        Text(log.foodName, style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface)
+                    }
+                }
+                IconButton(onClick = { showEditDialog = true }) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                IconButton(onClick = { showConfirmDelete = true }) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            IconButton(onClick = { viewModel.deleteHealth(log) }) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                MacroText("P", "${log.protein}g", Color(0xFF4ADE80))
+                MacroText("C", "${log.carbs}g", Color(0xFFF97316))
+                MacroText("F", "${log.fat}g", Color(0xFFFACC15))
+                MacroText("kcal", "${log.calories}", Color(0xFFA78BFA))
+                MacroText("💧", if (log.waterMl >= 1000) "${"%.1f".format(log.waterMl / 1000f)}L"
+                else "${log.waterMl}ml", Color(0xFF22D3EE))
             }
         }
     }
@@ -211,18 +300,22 @@ fun MacroText(label: String, value: String, color: Color) {
 }
 
 @Composable
-fun LogHealthDialog(onDismiss: () -> Unit, onConfirm: (Int, Int, Int, Int, Float) -> Unit) {
+fun LogHealthDialog(onDismiss: () -> Unit, onConfirm: (String, Int, Int, Int, Int, Int) -> Unit) {
+    var foodName by remember { mutableStateOf("") }
     var calories by remember { mutableStateOf("") }
     var protein by remember { mutableStateOf("") }
     var carbs by remember { mutableStateOf("") }
     var fat by remember { mutableStateOf("") }
-    var water by remember { mutableStateOf("") }
+    var waterMl by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Log nutrition") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(value = foodName, onValueChange = { foodName = it },
+                    label = { Text("What did you eat?") }, singleLine = true,
+                    modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(value = calories, onValueChange = { calories = it },
                     label = { Text("Calories (kcal)") }, singleLine = true,
                     modifier = Modifier.fillMaxWidth())
@@ -235,19 +328,20 @@ fun LogHealthDialog(onDismiss: () -> Unit, onConfirm: (Int, Int, Int, Int, Float
                 OutlinedTextField(value = fat, onValueChange = { fat = it },
                     label = { Text("Fat (g)") }, singleLine = true,
                     modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = water, onValueChange = { water = it },
-                    label = { Text("Water (L)") }, singleLine = true,
+                OutlinedTextField(value = waterMl, onValueChange = { waterMl = it },
+                    label = { Text("Water (ml)") }, singleLine = true,
                     modifier = Modifier.fillMaxWidth())
             }
         },
         confirmButton = {
             TextButton(onClick = {
                 onConfirm(
+                    foodName,
                     calories.toIntOrNull() ?: 0,
                     protein.toIntOrNull() ?: 0,
                     carbs.toIntOrNull() ?: 0,
                     fat.toIntOrNull() ?: 0,
-                    water.toFloatOrNull() ?: 0f
+                    waterMl.toIntOrNull() ?: 0
                 )
             }) { Text("Log", color = Color(0xFFA78BFA)) }
         },
@@ -258,29 +352,129 @@ fun LogHealthDialog(onDismiss: () -> Unit, onConfirm: (Int, Int, Int, Int, Float
 }
 
 @Composable
+fun EditHealthDialog(log: HealthLog, onDismiss: () -> Unit, onConfirm: (String, Int, Int, Int, Int, Int) -> Unit) {
+    var foodName by remember { mutableStateOf(log.foodName) }
+    var calories by remember { mutableStateOf(log.calories.toString()) }
+    var protein by remember { mutableStateOf(log.protein.toString()) }
+    var carbs by remember { mutableStateOf(log.carbs.toString()) }
+    var fat by remember { mutableStateOf(log.fat.toString()) }
+    var waterMl by remember { mutableStateOf(log.waterMl.toString()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit log") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(value = foodName, onValueChange = { foodName = it },
+                    label = { Text("What did you eat?") }, singleLine = true,
+                    modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = calories, onValueChange = { calories = it },
+                    label = { Text("Calories (kcal)") }, singleLine = true,
+                    modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = protein, onValueChange = { protein = it },
+                    label = { Text("Protein (g)") }, singleLine = true,
+                    modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = carbs, onValueChange = { carbs = it },
+                    label = { Text("Carbs (g)") }, singleLine = true,
+                    modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = fat, onValueChange = { fat = it },
+                    label = { Text("Fat (g)") }, singleLine = true,
+                    modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = waterMl, onValueChange = { waterMl = it },
+                    label = { Text("Water (ml)") }, singleLine = true,
+                    modifier = Modifier.fillMaxWidth())
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                onConfirm(
+                    foodName,
+                    calories.toIntOrNull() ?: 0,
+                    protein.toIntOrNull() ?: 0,
+                    carbs.toIntOrNull() ?: 0,
+                    fat.toIntOrNull() ?: 0,
+                    waterMl.toIntOrNull() ?: 0
+                )
+            }) { Text("Save", color = Color(0xFFA78BFA)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
+
+@Composable
 fun LogSleepDialog(onDismiss: () -> Unit, onConfirm: (Float) -> Unit) {
-    var hours by remember { mutableFloatStateOf(7f) }
+    var bedHour by remember { mutableIntStateOf(22) }
+    var bedMinute by remember { mutableIntStateOf(0) }
+    var wakeHour by remember { mutableIntStateOf(7) }
+    var wakeMinute by remember { mutableIntStateOf(0) }
+
+    val totalMinutes = run {
+        val bedTotal = bedHour * 60 + bedMinute
+        val wakeTotal = wakeHour * 60 + wakeMinute
+        if (wakeTotal >= bedTotal) wakeTotal - bedTotal
+        else (24 * 60 - bedTotal) + wakeTotal
+    }
+    val hoursSlept = totalMinutes / 60
+    val minutesSlept = totalMinutes % 60
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Log sleep") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Hours slept: ${String.format("%.1f", hours)}h",
-                    style = MaterialTheme.typography.bodyMedium)
-                Slider(
-                    value = hours,
-                    onValueChange = { hours = it },
-                    valueRange = 0f..12f,
-                    colors = SliderDefaults.colors(
-                        thumbColor = Color(0xFF818CF8),
-                        activeTrackColor = Color(0xFF818CF8)
+                Text("Bedtime", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = bedHour.toString().padStart(2, '0'),
+                        onValueChange = { bedHour = it.toIntOrNull()?.coerceIn(0, 23) ?: bedHour },
+                        label = { Text("HH") }, singleLine = true,
+                        modifier = Modifier.weight(1f)
                     )
-                )
+                    Text(":", style = MaterialTheme.typography.titleLarge)
+                    OutlinedTextField(
+                        value = bedMinute.toString().padStart(2, '0'),
+                        onValueChange = { bedMinute = it.toIntOrNull()?.coerceIn(0, 59) ?: bedMinute },
+                        label = { Text("MM") }, singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                Text("Wake time", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = wakeHour.toString().padStart(2, '0'),
+                        onValueChange = { wakeHour = it.toIntOrNull()?.coerceIn(0, 23) ?: wakeHour },
+                        label = { Text("HH") }, singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(":", style = MaterialTheme.typography.titleLarge)
+                    OutlinedTextField(
+                        value = wakeMinute.toString().padStart(2, '0'),
+                        onValueChange = { wakeMinute = it.toIntOrNull()?.coerceIn(0, 59) ?: wakeMinute },
+                        label = { Text("MM") }, singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                Card(
+                    shape = RoundedCornerShape(10.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF818CF8).copy(alpha = 0.15f))
+                ) {
+                    Text(
+                        "Slept: ${hoursSlept}h ${minutesSlept}m",
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFF818CF8)
+                    )
+                }
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(hours) }) {
+            TextButton(onClick = { onConfirm(totalMinutes / 60f) }) {
                 Text("Log", color = Color(0xFFA78BFA))
             }
         },

@@ -7,9 +7,10 @@ import androidx.room.PrimaryKey
 data class HealthLog(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val date: String,
+    val foodName: String ="",
     val calories: Int = 0,
     val protein: Int = 0,
     val carbs: Int = 0,
     val fat: Int = 0,
-    val waterLiters: Float = 0f
+    val waterMl: Int = 0
 )
