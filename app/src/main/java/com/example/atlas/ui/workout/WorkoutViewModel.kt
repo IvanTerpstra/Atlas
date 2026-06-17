@@ -25,12 +25,13 @@ class WorkoutViewModel(app: Application) : AndroidViewModel(app) {
         emptyList()
     )
 
-    fun addPlan(dayOfWeek: String, name: String, estimatedMinutes: Int) {
+    fun addPlan(dayOfWeek: String, name: String, estimatedMinutes: Int, startTime: String = "") {
         viewModelScope.launch {
             dao.insertPlan(WorkoutPlan(
                 dayOfWeek = dayOfWeek,
                 name = name,
-                estimatedMinutes = estimatedMinutes
+                estimatedMinutes = estimatedMinutes,
+                startTime = startTime
             ))
         }
     }

@@ -9,5 +9,6 @@ data class WorkoutPlan(
     val dayOfWeek: String,
     val name: String,
     val estimatedMinutes: Int = 0,
-    val isCompleted: Boolean = false
+    val isCompleted: Boolean = false,
+    val startTime: String = ""
 )
